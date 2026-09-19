@@ -1,13 +1,12 @@
 import 'dotenv/config';
 import express from 'express';
-import OpenAI from 'openai';
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static('public'));
 
-const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
-const model = process.env.OPENAI_MODEL || 'gpt-5';
+const anthropicApiKey = process.env.ANTHROPIC_API_KEY || null;
+const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 
 const entrySchema = {
   type: 'object',
@@ -53,21 +52,45 @@ function fallbackExtract(text) {
 }
 
 async function extractEntries(text) {
-  if (!client) return fallbackExtract(text);
-  const response = await client.responses.create({
-    model,
-    instructions: `You extract entries for a private digital commonplace book. Preserve the user's meaning and voice. Split a single utterance into multiple entries whenever the PRIMARY OBJECT OF ATTENTION changes, even when the items are related or nested. For example, a museum visit, a distinct reflection on Cezanne within that museum, and a reflection on Middlemarch should be THREE entries if each receives its own substantive thought. Do not split every sentence: split only when each resulting entry would be independently useful to retrieve later. If a named artist is discussed without a specific work, use entry_type=culture, subtype=artist, candidate_title=the artist's name, lookup_required=false. If a specific artwork is named, use subtype=artwork. Infer only what is directly supported by the words. You may repair an obvious speech-transcription artifact only when the intended entity is strongly supported by context; otherwise keep it unresolved. Never invent authors, dates, identifiers, addresses, room names, artworks, or other factual metadata. If a user says they bought a book, ownership_state may be owned but state must not become reading unless they say they started it. If they express enthusiasm about a future item, affect may be excited. display_text should preserve the user's actual thought with only light cleanup. lookup_required should be true only when an external real-world entity should be resolved.`,
-    input: text,
-    text: {
-      format: {
-        type: 'json_schema',
-        name: 'commonplace_entries',
-        strict: true,
-        schema: entrySchema
+  if (!anthropicApiKey) return fallbackExtract(text);
+
+  const system = `You extract entries for a private digital commonplace book. Preserve the user's meaning and voice. Split a single utterance into multiple entries whenever the PRIMARY OBJECT OF ATTENTION changes, even when the items are related or nested. A place visit, a distinct reflection on an artist or artwork there, a book reflection, a music reflection, and a personal/family moment can all be separate entries from one recording if each would be independently useful to retrieve later. Do not split every sentence: split only when each resulting entry has its own meaningful object of attention or memory.
+
+Examples:
+- "I went to the Met, loved the Cezannes, then read Middlemarch" should normally create 3 entries: Met/place, Cezanne/artist or artwork, Middlemarch/book.
+- "We were in Central Park, the kids were running around and I want to remember it, I read Europe Central, and listened to Vivaldi" should normally create 4 entries: Central Park/place, family memory, Europe Central/book, Vivaldi/music.
+
+If a named artist is discussed without a specific work, use entry_type=culture, subtype=artist, candidate_title=the artist's name, lookup_required=false. If a specific artwork is named, use subtype=artwork. Infer only what is directly supported by the words. You may repair an obvious speech-transcription artifact only when the intended entity is strongly supported by context; otherwise keep it unresolved. Never invent authors, dates, identifiers, addresses, room names, artworks, or other factual metadata. If a user says they bought a book, ownership_state may be owned but state must not become reading unless they say they started it. If they express enthusiasm about a future item, affect may be excited. display_text should preserve the user's actual thought with only light cleanup. lookup_required should be true only when an external real-world entity should be resolved.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': anthropicApiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 2500,
+      system,
+      messages: [{ role: 'user', content: text }],
+      output_config: {
+        format: {
+          type: 'json_schema',
+          schema: entrySchema
+        }
       }
-    }
+    })
   });
-  return JSON.parse(response.output_text);
+
+  const data = await response.json();
+  if (!response.ok) {
+    const detail = data?.error?.message || `Anthropic ${response.status}`;
+    throw new Error(detail);
+  }
+  const textBlock = (data.content || []).find((block) => block.type === 'text');
+  if (!textBlock?.text) throw new Error('Claude returned no structured text output.');
+  return JSON.parse(textBlock.text);
 }
 
 async function searchOpenLibrary(title, creator) {
@@ -160,7 +183,8 @@ app.post('/api/capture', async (req, res) => {
 
 app.get('/api/health', (req,res) => res.json({
   ok: true,
-  openai: Boolean(process.env.OPENAI_API_KEY),
+  anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
+  model,
   tmdb: Boolean(process.env.TMDB_BEARER_TOKEN),
   google_places: Boolean(process.env.GOOGLE_PLACES_API_KEY),
   apple_music: Boolean(process.env.APPLE_MUSIC_DEVELOPER_TOKEN)

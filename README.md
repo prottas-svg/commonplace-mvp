@@ -10,7 +10,7 @@ It does **not** yet include accounts, persistence, hamlets, comments, privacy, p
 
 - Type a natural-language reflection.
 - In browsers that expose Web Speech Recognition, speak directly into the capture box.
-- OpenAI Structured Outputs split/interpret one or more entries.
+- Claude / Anthropic Structured Outputs split/interpret one or more entries.
 - Books resolve against Open Library with real cover/author metadata.
 - Movies/TV resolve through TMDB when `TMDB_BEARER_TOKEN` is configured.
 - Music and Places intentionally degrade to a valid unresolved entry until their adapters are configured.
@@ -21,7 +21,7 @@ It does **not** yet include accounts, persistence, hamlets, comments, privacy, p
 
 1. Install Node.js 20+.
 2. Copy `.env.example` to `.env`.
-3. Add `OPENAI_API_KEY`.
+3. Add `ANTHROPIC_API_KEY`.
 4. Optional: add `TMDB_BEARER_TOKEN`.
 5. Run:
 

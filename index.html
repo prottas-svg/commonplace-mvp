@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Commonplace Capture</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">COMMONPLACE · CAPTURE PROTOTYPE</div>
+      <h1>What do you want to remember?</h1>
+      <p>Say as much or as little as the moment deserves.</p>
+    </header>
+
+    <section class="capture-card">
+      <textarea id="input" rows="5" placeholder="Finished Orbital. Loved it. The perspective took me a while, but by the end I thought it was incredible."></textarea>
+      <div class="actions">
+        <button id="mic" class="secondary">🎙 Start talking</button>
+        <button id="process" class="primary">Put this together</button>
+      </div>
+      <div id="speechNote" class="note"></div>
+    </section>
+
+    <section id="status" class="status hidden"></section>
+    <section id="results"></section>
+
+    <section class="test-block">
+      <h2>Test utterances</h2>
+      <div id="tests" class="chips"></div>
+    </section>
+  </main>
+<script src="app.js"></script>
+</body>
+</html>

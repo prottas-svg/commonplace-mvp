@@ -15,7 +15,8 @@ const tests = [
   'We had an amazing dinner at Pizzeria Bianco. The crust was incredible.',
   'That church today was extraordinary. I loved the blue fresco behind the altar, and Ada kept asking why everyone looked sad.',
   'Ada asked why everyone in the fresco looked so sad today. I really want to remember that.',
-  'I bought three books today: Orbital, James, and The Years. Most excited about James.'
+  'I bought three books today: Orbital, James, and The Years. Most excited about James.',
+  'I went to the Metropolitan Museum of Art, which I loved in general. The Cezanne room was incredible and all the paintings there were awesome. Then I read Middlemarch; I am almost done and it has become one of my all-time favorites.'
 ];
 
 document.querySelector('#tests').innerHTML = tests.map((t,i)=>`<button class="chip" data-i="${i}">${t}</button>`).join('');
@@ -28,20 +29,29 @@ function setStatus(text, show=true){ statusEl.textContent=text; statusEl.classLi
 function esc(s=''){ return s.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function label(s){ return s ? s.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase()) : ''; }
 
+const HISTORY_KEY = 'commonplace_capture_history_v2';
+function loadHistory(){ try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; } }
+function saveHistory(items){ localStorage.setItem(HISTORY_KEY, JSON.stringify(items)); }
+function persistCapture(inputText, entries){
+  const history = loadHistory();
+  history.unshift({ id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()), captured_at: new Date().toISOString(), input: inputText, entries });
+  saveHistory(history.slice(0,100));
+}
+
 processBtn.addEventListener('click', async () => {
   const text = input.value.trim(); if (!text) return;
-  results.innerHTML=''; setStatus('Putting this together…'); processBtn.disabled=true;
+  setStatus('Putting this together…'); processBtn.disabled=true;
   try {
     const res = await fetch('/api/capture',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Capture failed');
-    render(data.entries); setStatus(`Found ${data.entries.length} ${data.entries.length===1?'entry':'entries'}.`);
+    persistCapture(text, data.entries); renderHistory(); input.value=''; setStatus(`Saved ${data.entries.length} ${data.entries.length===1?'entry':'entries'} to your book.`);
   } catch(err){ setStatus(`Couldn’t process this: ${err.message}`); }
   finally { processBtn.disabled=false; }
 });
 
-function render(entries){
-  results.innerHTML = entries.map((e) => {
+function renderEntries(entries){
+  return entries.map((e) => {
     const candidates = e.resolution?.candidates || [];
     const best = candidates[0];
     const title = best?.title || e.candidate_title || (e.entry_type === 'memory' ? 'Memory' : 'Unresolved entry');
@@ -49,14 +59,26 @@ function render(entries){
     const image = best?.image;
     const pills = [e.subtype,e.state,e.ownership_state,e.affect].filter(Boolean);
     let resolution = '';
-    if (e.resolution?.status === 'adapter_not_configured') resolution = `<div class="note">${esc(e.resolution.provider)} adapter not configured yet; entry still remains valid.</div>`;
-    if (e.resolution?.status === 'unresolved') resolution = `<div class="note">No confident external match. Save as-is rather than guessing.</div>`;
+    if (e.resolution?.status === 'adapter_not_configured') resolution = `<div class="note">${esc(e.resolution.provider)} lookup is not configured yet; this entry is still saved.</div>`;
+    if (e.resolution?.status === 'unresolved') resolution = `<div class="note">No confident external match. Saved as-is rather than guessing.</div>`;
     if (candidates.length > 1) {
       resolution += `<div class="candidates"><strong>Possible matches</strong>${candidates.slice(0,4).map((c,i)=>`<div class="candidate">${c.image?`<img src="${esc(c.image)}">`:''}<span>${i===0?'✓ ':''}${esc(c.title)}${c.creator?` — ${esc(c.creator)}`:''}${c.year?` (${esc(String(c.year))})`:''}</span></div>`).join('')}</div>`;
     }
     return `<article class="entry"><div class="entry-grid"><div>${image?`<img class="cover" src="${esc(image)}" alt="">`:`<div class="cover placeholder">${e.entry_type==='memory'?'✦':'•'}</div>`}</div><div><div class="meta">${esc(label(e.entry_type))}</div><h3>${esc(title)}</h3>${creator?`<div class="creator">${esc(creator)}</div>`:''}<div class="pills">${pills.map(p=>`<span class="pill">${esc(label(p))}</span>`).join('')}</div><div class="reflection">${esc(e.display_text)}</div>${resolution}</div></div></article>`;
   }).join('');
 }
+
+function renderHistory(){
+  const history = loadHistory();
+  if (!history.length) { results.innerHTML = '<div class="note">Your commonplace book is empty. Add something above.</div>'; return; }
+  results.innerHTML = history.map((capture) => {
+    const d = new Date(capture.captured_at);
+    const stamp = Number.isNaN(d.getTime()) ? '' : d.toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+    return `<section class="capture-group"><div class="capture-head"><strong>${esc(stamp)}</strong><span>${capture.entries.length} ${capture.entries.length===1?'entry':'entries'} from one capture</span></div>${renderEntries(capture.entries)}</section>`;
+  }).join('');
+}
+
+renderHistory();
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (SpeechRecognition) {

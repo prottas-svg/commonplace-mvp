@@ -27,7 +27,7 @@ const entrySchema = {
         ],
         properties: {
           entry_type: { type: 'string', enum: ['culture','place','memory','other'] },
-          subtype: { type: ['string','null'], enum: ['book','movie','tv','album','song','podcast','restaurant','museum','location','article','artwork','other',null] },
+          subtype: { type: ['string','null'], enum: ['book','movie','tv','album','song','podcast','restaurant','museum','location','article','artwork','artist','other',null] },
           candidate_title: { type: ['string','null'] },
           candidate_creator: { type: ['string','null'] },
           state: { type: ['string','null'], enum: ['want_to_read','owned','reading','finished','want_to_watch','watching','watched','want_to_listen','listening','heard','want_to_go','visited','want_to_try','went','saved','experienced',null] },
@@ -56,7 +56,7 @@ async function extractEntries(text) {
   if (!client) return fallbackExtract(text);
   const response = await client.responses.create({
     model,
-    instructions: `You extract entries for a private digital commonplace book. Preserve the user's meaning and voice. Split multiple distinct cultural objects or memories when useful. Infer only what is directly supported by the words. Never invent authors, dates, identifiers, addresses, or other factual metadata. If a user says they bought a book, ownership_state may be owned but state must not become reading unless they say they started it. If they express enthusiasm about a future item, affect may be excited. display_text should preserve the user's actual thought with only light cleanup. lookup_required should be true only when an external real-world entity should be resolved.`,
+    instructions: `You extract entries for a private digital commonplace book. Preserve the user's meaning and voice. Split a single utterance into multiple entries whenever the PRIMARY OBJECT OF ATTENTION changes, even when the items are related or nested. For example, a museum visit, a distinct reflection on Cezanne within that museum, and a reflection on Middlemarch should be THREE entries if each receives its own substantive thought. Do not split every sentence: split only when each resulting entry would be independently useful to retrieve later. If a named artist is discussed without a specific work, use entry_type=culture, subtype=artist, candidate_title=the artist's name, lookup_required=false. If a specific artwork is named, use subtype=artwork. Infer only what is directly supported by the words. You may repair an obvious speech-transcription artifact only when the intended entity is strongly supported by context; otherwise keep it unresolved. Never invent authors, dates, identifiers, addresses, room names, artworks, or other factual metadata. If a user says they bought a book, ownership_state may be owned but state must not become reading unless they say they started it. If they express enthusiasm about a future item, affect may be excited. display_text should preserve the user's actual thought with only light cleanup. lookup_required should be true only when an external real-world entity should be resolved.`,
     input: text,
     text: {
       format: {
@@ -132,6 +132,7 @@ async function resolve(entry) {
 function providerFor(subtype) {
   if (['album','song'].includes(subtype)) return 'apple_music';
   if (['restaurant','museum','location'].includes(subtype)) return 'google_places';
+  if (['artist','artwork'].includes(subtype)) return 'art_metadata';
   return 'generic';
 }
 

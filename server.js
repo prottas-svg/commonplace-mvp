@@ -15,8 +15,6 @@ const entrySchema = {
   properties: {
     entries: {
       type: 'array',
-      minItems: 1,
-      maxItems: 10,
       items: {
         type: 'object',
         additionalProperties: false,
@@ -34,7 +32,7 @@ const entrySchema = {
           affect: { type: ['string','null'], enum: ['loved','liked','mixed','disliked','excited',null] },
           display_text: { type: 'string' },
           lookup_required: { type: 'boolean' },
-          confidence: { type: 'number', minimum: 0, maximum: 1 }
+          confidence: { type: 'number' }
         }
       }
     }
@@ -54,7 +52,7 @@ function fallbackExtract(text) {
 async function extractEntries(text) {
   if (!anthropicApiKey) return fallbackExtract(text);
 
-  const system = `You extract entries for a private digital commonplace book. Preserve the user's meaning and voice. Split a single utterance into multiple entries whenever the PRIMARY OBJECT OF ATTENTION changes, even when the items are related or nested. A place visit, a distinct reflection on an artist or artwork there, a book reflection, a music reflection, and a personal/family moment can all be separate entries from one recording if each would be independently useful to retrieve later. Do not split every sentence: split only when each resulting entry has its own meaningful object of attention or memory.
+  const system = `You extract entries for a private digital commonplace book. Return between 1 and 10 entries. Preserve the user's meaning and voice. Split a single utterance into multiple entries whenever the PRIMARY OBJECT OF ATTENTION changes, even when the items are related or nested. A place visit, a distinct reflection on an artist or artwork there, a book reflection, a music reflection, and a personal/family moment can all be separate entries from one recording if each would be independently useful to retrieve later. Do not split every sentence: split only when each resulting entry has its own meaningful object of attention or memory.
 
 Examples:
 - "I went to the Met, loved the Cezannes, then read Middlemarch" should normally create 3 entries: Met/place, Cezanne/artist or artwork, Middlemarch/book.

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Books that rearranged me · Commonplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+  :root {
+    --wall: #4a2320; --wall-deep: #3d1c1a; --cream: #f1e6d6; --muted: #d4c4b0; --ink: #2b1d1a; --label: #6b5a50;
+    --note: #f3e7b8; --wood: #2a1512;
+    --display: 'Cormorant Garamond', Georgia, serif; --body: 'Newsreader', Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--wall-deep); }
+  body { color: var(--cream); font-family: var(--body); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .room { max-width: 1280px; margin: 0 auto; padding: 64px 72px 80px; background: var(--wall); }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; margin-bottom: 52px; }
+  h1 { margin: 0 0 8px; font-family: var(--display); font-weight: 500; font-size: clamp(46px, 7vw, 80px); line-height: .95; }
+  h2 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 40px; }
+  header p { margin: 0; font-size: 19px; color: var(--muted); max-width: 60ch; }
+  .who { display: flex; align-items: center; gap: 16px; white-space: nowrap; }
+  .who span { font-size: 15px; color: var(--muted); }
+  button { font-family: var(--body); font-size: 15px; min-height: 44px; padding: 10px 20px; border-radius: 999px; cursor: pointer; }
+  .ghost { background: transparent; color: var(--cream); border: 1px solid #b89a88; }
+  .solid { background: var(--cream); color: var(--wall); border: 0; }
+  button:focus-visible { outline: 2px solid var(--note); outline-offset: 3px; }
+  .shadow { box-shadow: 0 16px 32px rgba(0,0,0,.32); }
+
+  .slot { position: relative; overflow: hidden; }
+  .slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .5s; }
+  .slot.loaded img { opacity: 1; }
+  .slot.loaded .fallback { visibility: hidden; }
+  .fallback { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 14px 12px; font-family: var(--display); font-weight: 600; font-size: 22px; line-height: 1.02; }
+  .fallback small { font-family: var(--body); font-weight: 400; font-size: 12px; }
+  @media (prefers-reduced-motion: reduce) { .slot img { transition: none; } }
+
+  /* Shelf: covers face out, each with a hanging tag of your words */
+  .shelf { display: flex; align-items: flex-end; gap: 22px; padding: 0 26px; overflow-x: auto; }
+  .book { flex: none; display: flex; flex-direction: column; align-items: center; }
+  .cover { width: 132px; height: 200px; }
+  .cover.tall { height: 214px; } .cover.short { height: 188px; }
+  .plank { height: 16px; background: var(--wood); box-shadow: 0 14px 20px rgba(0,0,0,.35); }
+  .tags { display: flex; gap: 22px; padding: 12px 26px 0; overflow-x: auto; }
+  .tag { flex: none; width: 132px; font-size: 13px; line-height: 1.35; color: var(--muted); }
+  .tag b { display: block; font-weight: 500; color: var(--cream); font-size: 14px; }
+  .next { display: flex; gap: 14px; align-items: flex-end; margin-left: auto; padding-left: 24px; border-left: 1px dashed #8a6a5c; }
+  .next .cover { width: 104px; height: 158px; transform: rotate(-3deg); }
+  .next .cover + .cover { transform: rotate(2deg); }
+
+  .lower { display: grid; grid-template-columns: 7fr 5fr; gap: 40px; margin-top: 60px; align-items: start; }
+  .history { background: var(--cream); color: var(--ink); padding: 36px 40px; }
+  .history .top { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 24px; }
+  .history .top span { font-size: 14px; color: var(--label); }
+  .history ol { margin: 0; padding: 0 0 0 26px; list-style: none; border-left: 2px solid #c9a98f; display: grid; gap: 18px; }
+  .history li { display: grid; gap: 3px; }
+  .history li span { font-size: 13px; color: var(--label); }
+  .history li p { margin: 0; font-size: 18px; line-height: 1.4; }
+  .history li p.said { font-style: italic; }
+  .side { display: grid; gap: 36px; }
+  .note { display: grid; grid-template-columns: 96px 1fr; gap: 18px; background: var(--note); color: #2c2a22; padding: 22px; transform: rotate(1.6deg); }
+  .note .slot { width: 96px; height: 120px; background: #d8cfa6; filter: grayscale(.2); }
+  .note strong { font-family: var(--display); font-size: 26px; font-weight: 600; display: block; }
+  .note p { margin: 6px 0 10px; font-style: italic; font-size: 19px; line-height: 1.38; }
+  .note span { font-size: 13px; color: #5e5838; }
+  .suggest { border: 1px solid #b89a88; padding: 22px 24px; display: grid; grid-template-columns: 1fr 88px; gap: 18px; }
+  .suggest .slot { width: 88px; height: 134px; background: #2f3b52; }
+  .suggest p { margin: 8px 0 16px; font-size: 18px; line-height: 1.45; }
+  .suggest .from { font-size: 14px; color: var(--muted); }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .credit { font-size: 12px; color: var(--muted); margin-top: 48px; }
+
+  @media (max-width: 900px) {
+    .room { padding: 40px 22px 56px; }
+    header { flex-direction: column; align-items: flex-start; }
+    .lower { grid-template-columns: 1fr; }
+    .next { display: none; }
+  }
+  @media print { @page { size: landscape; margin: 0; } html, body { background: var(--wall); } .room { max-width: none; } }
+</style>
+</head>
+<body>
+<main class="room">
+  <header>
+    <div>
+      <h1>Books that rearranged me</h1>
+      <p>Every book you’ve called a favorite, with what you said about it along the way.</p>
+    </div>
+    <div class="who"><span>Shared with Book club</span><button class="ghost" type="button">Share room</button></div>
+  </header>
+
+  <section aria-label="Shelf">
+    <div class="shelf">
+      <div class="book"><div class="slot cover tall shadow" data-ol-title="Middlemarch" data-ol-author="George Eliot" style="background:#1d5a5c;color:#f1e7cf"><div class="fallback">Middle&shy;march<small>George Eliot</small></div><img alt="Middlemarch"></div></div>
+      <div class="book"><div class="slot cover shadow" data-ol-title="Europe Central" data-ol-author="Vollmann" style="background:#161616;color:#f0e6d2"><div class="fallback">Europe Central<small>William T. Vollmann</small></div><img alt="Europe Central"></div></div>
+      <div class="book"><div class="slot cover short shadow" data-ol-title="Beloved" data-ol-author="Toni Morrison" style="background:#7a3b2e;color:#f4e3cc"><div class="fallback">Beloved<small>Toni Morrison</small></div><img alt="Beloved"></div></div>
+      <div class="book"><div class="slot cover shadow" data-ol-title="The Years" data-ol-author="Annie Ernaux" style="background:#d9c9a3;color:#2b2418"><div class="fallback">The Years<small>Annie Ernaux</small></div><img alt="The Years"></div></div>
+      <div class="book"><div class="slot cover tall shadow" data-ol-title="The Bee Sting" data-ol-author="Paul Murray" style="background:#e4b04a;color:#2a1f0c"><div class="fallback">The Bee Sting<small>Paul Murray</small></div><img alt="The Bee Sting"></div></div>
+      <div class="next" aria-label="Up next">
+        <div class="slot cover shadow" data-ol-title="James" data-ol-author="Percival Everett" style="background:#e8e0d0;color:#1c1a16"><div class="fallback">James<small>Percival Everett</small></div><img alt="James"></div>
+        <div class="slot cover shadow" data-ol-title="Orbital" data-ol-author="Samantha Harvey" style="background:#2f4f6a;color:#eef1f3"><div class="fallback">Orbital<small>Samantha Harvey</small></div><img alt="Orbital"></div>
+      </div>
+    </div>
+    <div class="plank"></div>
+    <div class="tags">
+      <div class="tag"><b>Finished Sep 22</b>“One of my all-time favorites.”</div>
+      <div class="tag"><b>Reading</b>“Picked it up again in the park.”</div>
+      <div class="tag"><b>Finished 2024</b>“I had to put it down every few pages.”</div>
+      <div class="tag"><b>Finished May</b>“A whole life in one voice.”</div>
+      <div class="tag"><b>Finished July</b>“Loved it.”</div>
+      <div class="tag" style="margin-left:auto;width:auto"><b>Up next</b>“I think I’ll start James first.”</div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <article class="history shadow">
+      <div class="top"><h2>You and Middlemarch</h2><span>6 entries, from college to now</span></div>
+      <ol>
+        <li><span>College</span><p>Knew it only as the name of a theme party.</p></li>
+        <li><span>March 2026</span><p>Bought a used copy after a friend wouldn’t stop talking about Dorothea.</p></li>
+        <li><span>August 30</span><p>Started. Slow for the first hundred pages.</p></li>
+        <li><span>September 20</span><p class="said">“Almost done and it is just such a gripping tale.”</p></li>
+        <li><span>September 20</span><p>Copied out: “…the growing good of the world is partly dependent on unhistoric acts.”</p></li>
+        <li><span>September 22</span><p class="said">“Finished. Now it’s one of my all-time favorites.”</p></li>
+      </ol>
+    </article>
+
+    <div class="side">
+      <div class="note shadow">
+        <div class="slot" data-wiki="Toni Morrison"><img alt="Toni Morrison"></div>
+        <div>
+          <strong>Toni Morrison</strong>
+          <p>“She just writes sentences nobody else could.”</p>
+          <span>About the writer, not one book. Sep 22</span>
+        </div>
+      </div>
+
+      <div class="suggest">
+        <div>
+          <span class="from">From your want list</span>
+          <p>You called Middlemarch gripping and loved its people. <i>Anna Karenina</i> has been on your list since June.</p>
+          <div class="actions"><button class="solid" type="button">Start it next</button><button class="ghost" type="button">Not now</button></div>
+        </div>
+        <div class="slot shadow" data-ol-title="Anna Karenina" data-ol-author="Tolstoy"><div class="fallback" style="color:#eef1f3;font-size:18px">Anna Karenina<small>Leo Tolstoy</small></div><img alt="Anna Karenina"></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="credit">Mockup: covers from Open Library and the author photo from Wikipedia, loaded live. Entries and dates are illustrative.</p>
+</main>
+
+<script>
+  function show(slot, url) {
+    if (!url) return;
+    const img = slot.querySelector('img');
+    img.onload = () => slot.classList.add('loaded');
+    img.src = url;
+  }
+  async function wikiImage(title) {
+    const u = new URL('https://en.wikipedia.org/w/api.php');
+    Object.entries({ action: 'query', titles: title, prop: 'pageimages', piprop: 'thumbnail', pithumbsize: '800', redirects: '1', format: 'json', origin: '*' })
+      .forEach(([k, v]) => u.searchParams.set(k, v));
+    const data = await (await fetch(u)).json();
+    return Object.values(data?.query?.pages || {})[0]?.thumbnail?.source || null;
+  }
+  async function openLibraryCover(title, author) {
+    const u = new URL('https://openlibrary.org/search.json');
+    u.searchParams.set('title', title);
+    if (author) u.searchParams.set('author', author);
+    u.searchParams.set('fields', 'cover_i');
+    u.searchParams.set('limit', '5');
+    const data = await (await fetch(u)).json();
+    const hit = (data.docs || []).find(d => d.cover_i);
+    return hit ? `https://covers.openlibrary.org/b/id/${hit.cover_i}-L.jpg` : null;
+  }
+  document.querySelectorAll('[data-wiki]').forEach(s => wikiImage(s.dataset.wiki).then(u => show(s, u)).catch(() => {}));
+  document.querySelectorAll('[data-ol-title]').forEach(s => openLibraryCover(s.dataset.olTitle, s.dataset.olAuthor).then(u => show(s, u)).catch(() => {}));
+</script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Someday · Commonplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+  :root {
+    --wall: #dce2e3; --wall-deep: #cfd6d8; --ink: #1f2a30; --muted: #4a565c; --paper: #fbfaf6; --note: #f3e7b8;
+    --display: 'Cormorant Garamond', Georgia, serif; --body: 'Newsreader', Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--wall-deep); }
+  body { color: var(--ink); font-family: var(--body); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .room { max-width: 1280px; margin: 0 auto; padding: 64px 72px 80px; background: var(--wall); }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; margin-bottom: 48px; }
+  h1 { margin: 0 0 8px; font-family: var(--display); font-weight: 500; font-size: clamp(52px, 7vw, 80px); line-height: .95; }
+  header p { margin: 0; font-size: 19px; color: var(--muted); max-width: 58ch; }
+  .who { display: flex; align-items: center; gap: 16px; white-space: nowrap; }
+  .who span { font-size: 15px; color: var(--muted); }
+  button { font-family: var(--body); font-size: 15px; min-height: 44px; padding: 10px 20px; border-radius: 999px; cursor: pointer; }
+  .ghost { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+  .dark .ghost { color: #eef1ef; border-color: #5d6c72; }
+  .solid { background: #eef1ef; color: var(--ink); border: 0; }
+  button:focus-visible { outline: 2px solid #2b5a8c; outline-offset: 3px; }
+  .shadow { box-shadow: 0 14px 28px rgba(31,42,48,.22); }
+
+  .wall { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 44px 32px; align-items: start; }
+  .s3 { grid-column: span 3; } .s4 { grid-column: span 4; } .s5 { grid-column: span 5; } .s12 { grid-column: span 12; }
+  figure { margin: 0; }
+  .kind { font-size: 13px; color: var(--muted); }
+  .name { font-family: var(--display); font-size: 27px; font-weight: 600; line-height: 1.05; }
+  .said { font-style: italic; font-size: 16px; line-height: 1.42; }
+
+  .slot { position: relative; overflow: hidden; background: #b9c4c7; }
+  .slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .5s; }
+  .slot.loaded img { opacity: 1; }
+  .slot.loaded .fallback { visibility: hidden; }
+  .fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; }
+  @media (prefers-reduced-motion: reduce) { .slot img { transition: none; } }
+
+  .card { background: var(--paper); padding: 14px 14px 18px; display: grid; gap: 12px; }
+  .card .slot { height: 220px; }
+  .card .line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+
+  .ticket { display: flex; background: var(--ink); color: #eef1ef; transform: rotate(1.2deg); }
+  .ticket .main { flex: 1; padding: 24px; display: grid; gap: 10px; }
+  .ticket .kind { color: #b8c3c6; }
+  .ticket .stub { width: 70px; border-left: 2px dashed #5d6c72; display: flex; align-items: center; justify-content: center; }
+  .ticket .stub span { writing-mode: vertical-rl; font-size: 14px; color: #b8c3c6; }
+
+  .gift { display: flex; flex-direction: column; align-items: flex-start; transform: rotate(-3deg); }
+  .gift .string { width: 2px; height: 36px; background: #8b6a3e; margin-left: 40px; }
+  .gift .body { background: #efe3c8; color: #2d2415; padding: 16px; border-radius: 4px 18px 18px 4px; display: grid; gap: 10px; width: 100%; }
+  .gift .slot { height: 120px; border-radius: 2px; }
+  .gift .kind { color: #6d5a3a; }
+
+  .sketch { background: var(--paper); padding: 22px 24px; display: grid; gap: 12px; transform: rotate(.6deg); }
+  .note { background: var(--note); color: #2c2a22; padding: 16px 16px 20px; display: grid; gap: 12px; transform: rotate(-1.6deg); }
+  .note .slot { height: 170px; }
+  .note p { margin: 0; font-style: italic; font-size: 20px; line-height: 1.38; }
+  .note span { font-size: 13px; color: #5e5838; }
+  .try { border: 1.5px solid var(--ink); background: #e7ecec; padding: 14px 14px 18px; display: grid; gap: 10px; }
+  .try .slot { height: 150px; }
+
+  .dark { background: var(--ink); color: #eef1ef; padding: 26px 32px; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+  .dark .kind { color: #b8c3c6; }
+  .dark p { margin: 4px 0 0; font-size: 20px; line-height: 1.4; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .credit { font-size: 12px; color: var(--muted); margin-top: 44px; }
+
+  @media (max-width: 900px) {
+    .room { padding: 40px 22px 56px; }
+    header { flex-direction: column; align-items: flex-start; }
+    .s3, .s4, .s5 { grid-column: span 12; }
+    .dark { flex-direction: column; align-items: flex-start; }
+  }
+  @media print { @page { size: landscape; margin: 0; } html, body { background: var(--wall); } .room { max-width: none; } }
+</style>
+</head>
+<body>
+<main class="room">
+  <header>
+    <div>
+      <h1>Someday</h1>
+      <p>Everything you’ve said you want to see, try, give, or make. It resurfaces when the timing fits.</p>
+    </div>
+    <div class="who"><span>Only you can see this</span><button class="ghost" type="button">Share room</button></div>
+  </header>
+
+  <section class="wall">
+    <figure class="s5 card shadow" style="transform:rotate(-1.3deg)">
+      <div class="slot" data-wiki="Azulejo"><div class="fallback">Tiles</div><img alt="Portuguese azulejo tiles"></div>
+      <div class="line"><span class="name">Lisbon, for the tiles</span><span class="kind">Want to go</span></div>
+      <figcaption class="said">“Maybe spring break. The kids would lose their minds over the blue walls.”</figcaption>
+    </figure>
+
+    <div class="s4 ticket shadow">
+      <div class="main">
+        <span class="kind">Want to watch, this week</span>
+        <span class="name" style="font-size:36px">Past Lives</span>
+        <span class="said" style="color:#d6dddd">Save it for a night when nobody’s tired.</span>
+      </div>
+      <div class="stub"><span>Admit two</span></div>
+    </div>
+
+    <div class="s3 gift">
+      <div class="string"></div>
+      <div class="body shadow">
+        <div class="slot" data-wiki="Fountain pen"><div class="fallback">Pen</div><img alt="A fountain pen"></div>
+        <span class="kind">Gift idea, November birthday</span>
+        <span class="name" style="font-size:24px">A good fountain pen</span>
+        <span class="said">“She keeps borrowing mine and not giving it back.”</span>
+      </div>
+    </div>
+
+    <div class="s4 note shadow">
+      <div class="slot" data-wiki="Scrovegni Chapel"><div class="fallback">Fresco</div><img alt="Giotto frescoes in the Scrovegni Chapel"></div>
+      <p>Take Ada to see a real fresco. She asked why everyone in the one at church looked so sad.</p>
+      <span>From a moment you kept, Aug 31</span>
+    </div>
+
+    <div class="s4 sketch shadow">
+      <svg viewBox="0 0 320 150" width="100%" height="150" fill="none" stroke="#1f2a30" stroke-width="1.5" stroke-linecap="round" aria-label="Your sketch idea: a porch with a lit bulb at dusk">
+        <path d="M10 130h300"/><path d="M40 130V70h120v60M30 72l90-40 90 40"/><path d="M200 130V92M180 92h40"/>
+        <circle cx="214" cy="66" r="10"/><path d="M214 50v-8M230 66h8M226 54l6-6M198 54l-6-6"/><path d="M250 40c14 4 30 4 44 0" opacity=".6"/>
+      </svg>
+      <span class="kind">Something to make</span>
+      <span class="name">Paint the porch light at dusk</span>
+      <span class="said">That ten minutes when the sky goes violet and the bulb looks orange.</span>
+    </div>
+
+    <div class="s4 try">
+      <div class="slot" data-wiki="Morning bun"><div class="fallback">Bakery</div><img alt="Morning buns"></div>
+      <span class="kind">Want to try</span>
+      <span class="name">The bakery everyone keeps mentioning</span>
+      <span class="said">Get there before the morning buns sell out, apparently by 9.</span>
+    </div>
+
+    <div class="s12 dark">
+      <div>
+        <span class="kind">Coming close</span>
+        <p>The November birthday is six weeks out. Still thinking fountain pen?</p>
+      </div>
+      <div class="actions"><button class="solid" type="button">Mark as done</button><button class="ghost" type="button">Remind me later</button></div>
+    </div>
+  </section>
+  <p class="credit">Mockup: images from Wikipedia, loaded live. The porch sketch stays drawn because it’s something you haven’t made yet.</p>
+</main>
+
+<script>
+  function show(slot, url) {
+    if (!url) return;
+    const img = slot.querySelector('img');
+    img.onload = () => slot.classList.add('loaded');
+    img.src = url;
+  }
+  async function wikiImage(title) {
+    const u = new URL('https://en.wikipedia.org/w/api.php');
+    Object.entries({ action: 'query', titles: title, prop: 'pageimages', piprop: 'thumbnail', pithumbsize: '900', redirects: '1', format: 'json', origin: '*' })
+      .forEach(([k, v]) => u.searchParams.set(k, v));
+    const data = await (await fetch(u)).json();
+    return Object.values(data?.query?.pages || {})[0]?.thumbnail?.source || null;
+  }
+  document.querySelectorAll('[data-wiki]').forEach(s => wikiImage(s.dataset.wiki).then(u => show(s, u)).catch(() => {}));
+</script>
+</body>
+</html>

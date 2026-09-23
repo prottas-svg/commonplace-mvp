@@ -24,12 +24,12 @@ const entrySchema = {
         ],
         properties: {
           entry_type: { type: 'string', enum: ['culture','place','memory','other'] },
-          subtype: { type: ['string','null'], enum: ['book','movie','tv','album','song','podcast','restaurant','museum','location','article','artwork','artist','musician','author','other',null] },
+          subtype: { type: 'string', enum: ['book','movie','tv','album','song','podcast','restaurant','museum','location','article','artwork','artist','musician','author','other','none'] },
           candidate_title: { type: ['string','null'] },
           candidate_creator: { type: ['string','null'] },
-          state: { type: ['string','null'], enum: ['want_to_read','owned','reading','finished','want_to_watch','watching','watched','want_to_listen','listening','heard','want_to_go','visited','want_to_try','went','saved','experienced',null] },
-          ownership_state: { type: ['string','null'], enum: ['owned','borrowed','unknown',null] },
-          affect: { type: ['string','null'], enum: ['loved','liked','mixed','disliked','excited',null] },
+          state: { type: 'string', enum: ['want_to_read','owned','reading','finished','want_to_watch','watching','watched','want_to_listen','listening','heard','want_to_go','visited','want_to_try','went','saved','experienced','none'] },
+          ownership_state: { type: 'string', enum: ['owned','borrowed','unknown','none'] },
+          affect: { type: 'string', enum: ['loved','liked','mixed','disliked','excited','none'] },
           display_text: { type: 'string' },
           source_quote: { type: 'string' },
           lookup_required: { type: 'boolean' },
@@ -66,6 +66,7 @@ GROUNDING (most important)
 - Never invent authors, dates, identifiers, addresses, room names, artworks, or other factual metadata.
 
 FIELDS
+- For subtype, state, ownership_state, and affect, use the value "none" when nothing applies.
 - source_quote: an EXACT contiguous excerpt copied from the input that this entry is based on. Copy characters verbatim, including filler words and errors. Do not paraphrase.
 - display_text: the user's thought for this entry in their own voice, with light cleanup only (remove filler like "um", "let's see"; keep their wording and opinions). No summarizing in third person.
 - Named writer without a specific book: entry_type=culture, subtype=author, candidate_title=the writer's name, candidate_creator=null, lookup_required=true. Do not add any of their books.
@@ -108,7 +109,13 @@ Entries: Lucia's (place/restaurant, went, loved); dinner with sister (memory) on
   if (data.stop_reason === 'refusal') throw new Error('Claude declined this input.');
   const textBlock = (data.content || []).find((block) => block.type === 'text');
   if (!textBlock?.text) throw new Error('Claude returned no structured text output.');
-  return { ...JSON.parse(textBlock.text), extraction_mode: 'claude' };
+  const parsed = JSON.parse(textBlock.text);
+  const ENUM_FIELDS = ['subtype','state','ownership_state','affect'];
+  parsed.entries = (parsed.entries || []).map((e) => {
+    for (const f of ENUM_FIELDS) if (e[f] === 'none') e[f] = null;
+    return e;
+  });
+  return { ...parsed, extraction_mode: 'claude' };
 }
 
 async function searchOpenLibrary(title, creator) {

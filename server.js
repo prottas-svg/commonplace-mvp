@@ -20,17 +20,18 @@ const entrySchema = {
         additionalProperties: false,
         required: [
           'entry_type','subtype','candidate_title','candidate_creator','state',
-          'ownership_state','affect','display_text','lookup_required','confidence'
+          'ownership_state','affect','display_text','source_quote','lookup_required','confidence'
         ],
         properties: {
           entry_type: { type: 'string', enum: ['culture','place','memory','other'] },
-          subtype: { type: ['string','null'], enum: ['book','movie','tv','album','song','podcast','restaurant','museum','location','article','artwork','artist','other',null] },
+          subtype: { type: ['string','null'], enum: ['book','movie','tv','album','song','podcast','restaurant','museum','location','article','artwork','artist','musician','author','other',null] },
           candidate_title: { type: ['string','null'] },
           candidate_creator: { type: ['string','null'] },
           state: { type: ['string','null'], enum: ['want_to_read','owned','reading','finished','want_to_watch','watching','watched','want_to_listen','listening','heard','want_to_go','visited','want_to_try','went','saved','experienced',null] },
           ownership_state: { type: ['string','null'], enum: ['owned','borrowed','unknown',null] },
           affect: { type: ['string','null'], enum: ['loved','liked','mixed','disliked','excited',null] },
           display_text: { type: 'string' },
+          source_quote: { type: 'string' },
           lookup_required: { type: 'boolean' },
           confidence: { type: 'number' }
         }
@@ -44,21 +45,38 @@ function fallbackExtract(text) {
     entries: [{
       entry_type: 'memory', subtype: null, candidate_title: null, candidate_creator: null,
       state: null, ownership_state: null, affect: null, display_text: text,
-      lookup_required: false, confidence: 0.5
-    }]
+      source_quote: text, lookup_required: false, confidence: 0.5
+    }],
+    extraction_mode: 'fallback_no_api_key'
   };
 }
 
 async function extractEntries(text) {
   if (!anthropicApiKey) return fallbackExtract(text);
 
-  const system = `You extract entries for a private digital commonplace book. Return between 1 and 10 entries. Preserve the user's meaning and voice. Split a single utterance into multiple entries whenever the PRIMARY OBJECT OF ATTENTION changes, even when the items are related or nested. A place visit, a distinct reflection on an artist or artwork there, a book reflection, a music reflection, and a personal/family moment can all be separate entries from one recording if each would be independently useful to retrieve later. Do not split every sentence: split only when each resulting entry has its own meaningful object of attention or memory.
+  const system = `You extract entries for a private digital commonplace book from one spoken or typed reflection. Return between 1 and 10 entries.
 
-Examples:
-- "I went to the Met, loved the Cezannes, then read Middlemarch" should normally create 3 entries: Met/place, Cezanne/artist or artwork, Middlemarch/book.
-- "We were in Central Park, the kids were running around and I want to remember it, I read Europe Central, and listened to Vivaldi" should normally create 4 entries: Central Park/place, family memory, Europe Central/book, Vivaldi/music.
+SPLITTING
+Split when the PRIMARY OBJECT OF ATTENTION meaningfully changes, not merely when the category changes. A place, a distinct reaction to something within that place, a book, a piece of music, and a personal or family moment can each be separate entries if each would be independently useful to retrieve later. Do not split every sentence, and do not create an entry for a passing mention with no reaction or state attached. Never return the whole transcript as one entry when it clearly covers several objects of attention.
 
-If a named artist is discussed without a specific work, use entry_type=culture, subtype=artist, candidate_title=the artist's name, lookup_required=false. If a specific artwork is named, use subtype=artwork. Infer only what is directly supported by the words. You may repair an obvious speech-transcription artifact only when the intended entity is strongly supported by context; otherwise keep it unresolved. Never invent authors, dates, identifiers, addresses, room names, artworks, or other factual metadata. If a user says they bought a book, ownership_state may be owned but state must not become reading unless they say they started it. If they express enthusiasm about a future item, affect may be excited. display_text should preserve the user's actual thought with only light cleanup. lookup_required should be true only when an external real-world entity should be resolved.`;
+GROUNDING (most important)
+- candidate_title and candidate_creator must come from words the user actually said, lightly normalized (capitalization, obvious transcription errors strongly supported by context). Never supply a name the user did not say.
+- If the user refers to something without naming it ("this one room", "a painting", "some book"), you may still make it a separate entry if it is a distinct object of attention, but set candidate_title=null, candidate_creator=null, lookup_required=false.
+- Fill candidate_creator ONLY if the user said the creator's name. Otherwise null, even for famous works; the system looks up creators separately.
+- Never invent authors, dates, identifiers, addresses, room names, artworks, or other factual metadata.
+
+FIELDS
+- source_quote: an EXACT contiguous excerpt copied from the input that this entry is based on. Copy characters verbatim, including filler words and errors. Do not paraphrase.
+- display_text: the user's thought for this entry in their own voice, with light cleanup only (remove filler like "um", "let's see"; keep their wording and opinions). No summarizing in third person.
+- Named writer without a specific book: entry_type=culture, subtype=author, candidate_title=the writer's name, candidate_creator=null, lookup_required=true. Do not add any of their books.
+- Named musician or composer without a specific work: entry_type=culture, subtype=musician. Named visual artist without a specific work: subtype=artist. Named specific artwork: subtype=artwork.
+- If the user bought a book, ownership_state may be owned, but state must not become reading unless they say they started it. "Almost done" means reading.
+- affect=excited for enthusiasm about a future item.
+- lookup_required=true only when a named real-world entity should be resolved.
+
+EXAMPLE (illustrative only; do not reuse its entities)
+Input: "Had dinner at Lucia's with my sister, the gnocchi was unreal, and on the drive home I finally started that Robert Caro book she gave me, plus the new Radiolab episode on sleep was kind of boring."
+Entries: Lucia's (place/restaurant, went, loved); dinner with sister (memory) only if the user dwells on it, otherwise fold into Lucia's; The Power Broker? NO: the user said "that Robert Caro book", so candidate_title=null, candidate_creator="Robert Caro", state=reading, lookup_required=false; Radiolab episode on sleep (culture/podcast, heard, disliked).`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -86,9 +104,11 @@ If a named artist is discussed without a specific work, use entry_type=culture, 
     const detail = data?.error?.message || `Anthropic ${response.status}`;
     throw new Error(detail);
   }
+  if (data.stop_reason === 'max_tokens') throw new Error('Claude hit max_tokens before finishing the JSON.');
+  if (data.stop_reason === 'refusal') throw new Error('Claude declined this input.');
   const textBlock = (data.content || []).find((block) => block.type === 'text');
   if (!textBlock?.text) throw new Error('Claude returned no structured text output.');
-  return JSON.parse(textBlock.text);
+  return { ...JSON.parse(textBlock.text), extraction_mode: 'claude' };
 }
 
 async function searchOpenLibrary(title, creator) {
@@ -108,6 +128,22 @@ async function searchOpenLibrary(title, creator) {
     year: d.first_publish_year || null,
     image: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : null,
     identifiers: { isbn: d.isbn?.slice(0, 4) || [] }
+  }));
+}
+
+async function searchOpenLibraryAuthor(name) {
+  const url = new URL('https://openlibrary.org/search/authors.json');
+  url.searchParams.set('q', name);
+  url.searchParams.set('limit', '5');
+  const res = await fetch(url, { headers: { 'User-Agent': 'CommonplacePrototype/0.1 (private MVP test)' } });
+  if (!res.ok) throw new Error(`Open Library ${res.status}`);
+  const data = await res.json();
+  // top_work is kept only as taste context for later; it is never attached to the entry.
+  return (data.docs || []).map((d) => ({
+    provider: 'open_library', provider_id: `/authors/${d.key}`,
+    title: d.name, creator: null, year: d.birth_date || null,
+    image: `https://covers.openlibrary.org/a/olid/${d.key}-M.jpg`,
+    identifiers: {}, taste_context: { top_work: d.top_work || null, work_count: d.work_count || 0 }
   }));
 }
 
@@ -139,6 +175,9 @@ async function resolve(entry) {
       const candidates = await searchOpenLibrary(entry.candidate_title, entry.candidate_creator);
       return resolutionFrom(candidates);
     }
+    if (entry.subtype === 'author') {
+      return resolutionFrom(await searchOpenLibraryAuthor(entry.candidate_title));
+    }
     if (entry.subtype === 'movie' || entry.subtype === 'tv') {
       const candidates = await searchTMDB(entry.candidate_title, entry.subtype);
       if (!process.env.TMDB_BEARER_TOKEN) return { status: 'adapter_not_configured', provider: 'tmdb', candidates: [] };
@@ -151,16 +190,45 @@ async function resolve(entry) {
 }
 
 function providerFor(subtype) {
-  if (['album','song'].includes(subtype)) return 'apple_music';
+  if (['album','song','musician'].includes(subtype)) return 'apple_music';
   if (['restaurant','museum','location'].includes(subtype)) return 'google_places';
   if (['artist','artwork'].includes(subtype)) return 'art_metadata';
   return 'generic';
 }
 
-function normalize(s='') { return s.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+function normalize(s='') {
+  return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+}
+const STOP = new Set(['the','a','an','of','and','by','in','on','at','to','de','la','le']);
+// Flags names that don't appear in what the user said. Flags, never drops.
+function grounding(entry, input) {
+  const src = ' ' + normalize(input) + ' ';
+  const quote = normalize(entry.source_quote || '');
+  const nameGrounded = (name) => {
+    if (!name) return true;
+    const words = normalize(name).split(' ').filter(w => w && !STOP.has(w));
+    return words.length > 0 && words.some(w => src.includes(' ' + w + ' '));
+  };
+  return {
+    quote_verbatim: quote.length > 0 && src.includes(' ' + quote + ' '),
+    title_grounded: nameGrounded(entry.candidate_title),
+    creator_grounded: nameGrounded(entry.candidate_creator)
+  };
+}
 function resolutionFrom(candidates) {
   if (!candidates.length) return { status: 'unresolved', candidates: [] };
   return { status: candidates.length === 1 ? 'matched' : 'candidates', candidates };
+}
+
+// A book entry carries its author as a secondary related object.
+// source says whether the user said the name or the metadata supplied it.
+function relatedFor(entry, resolution) {
+  if (entry.subtype !== 'book') return [];
+  if (entry.candidate_creator) {
+    return [{ role: 'author', name: entry.candidate_creator, source: 'stated' }];
+  }
+  const top = resolution.candidates?.[0];
+  return top?.creator ? [{ role: 'author', name: top.creator, source: 'resolved', provider: top.provider }] : [];
 }
 
 app.post('/api/capture', async (req, res) => {
@@ -168,11 +236,11 @@ app.post('/api/capture', async (req, res) => {
   if (!text) return res.status(400).json({ error: 'Text is required.' });
   try {
     const extracted = await extractEntries(text);
-    const enriched = await Promise.all(extracted.entries.map(async (entry) => ({
-      ...entry,
-      resolution: await resolve(entry)
-    })));
-    res.json({ input: text, entries: enriched });
+    const enriched = await Promise.all(extracted.entries.map(async (entry) => {
+      const resolution = await resolve(entry);
+      return { ...entry, checks: grounding(entry, text), resolution, related: relatedFor(entry, resolution) };
+    }));
+    res.json({ input: text, extraction_mode: extracted.extraction_mode, entries: enriched });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Capture failed.' });

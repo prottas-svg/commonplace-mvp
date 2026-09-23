@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Four days in New York · Commonplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+  :root {
+    --wall: #26372f; --wall-deep: #1f2e27; --cream: #efe9dd; --cream-muted: #c9c2b3;
+    --paper: #f4efe4; --ink: #22302a; --label: #5e5a52; --note: #f3e7b8; --gilt: #b39359;
+    --display: 'Cormorant Garamond', Georgia, serif; --body: 'Newsreader', Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--wall-deep); }
+  body { color: var(--cream); font-family: var(--body); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .room { max-width: 1280px; margin: 0 auto; padding: 64px 72px 80px; background: var(--wall); }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; margin-bottom: 48px; }
+  h1 { margin: 0 0 8px; font-family: var(--display); font-weight: 500; font-size: clamp(48px, 7vw, 80px); line-height: .95; letter-spacing: -.01em; }
+  header p { margin: 0; font-size: 19px; color: var(--cream-muted); max-width: 60ch; }
+  .who { display: flex; align-items: center; gap: 16px; white-space: nowrap; }
+  .who span { font-size: 15px; color: var(--cream-muted); }
+  button { font-family: var(--body); font-size: 16px; min-height: 44px; padding: 10px 22px; border-radius: 999px; cursor: pointer; }
+  .ghost { background: transparent; color: var(--cream); border: 1px solid var(--cream); }
+  .solid { background: var(--wall); color: var(--cream); border: 0; }
+  button:focus-visible { outline: 2px solid var(--gilt); outline-offset: 3px; }
+
+  .wall { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 44px 32px; align-items: start; }
+  .s3 { grid-column: span 3; } .s4 { grid-column: span 4; } .s5 { grid-column: span 5; } .s7 { grid-column: span 7; }
+  figure { margin: 0; }
+  .tilt-l { transform: rotate(-1.3deg); } .tilt-r { transform: rotate(1.2deg); } .tilt-ll { transform: rotate(-2.4deg); }
+  .shadow { box-shadow: 0 16px 32px rgba(0,0,0,.3); }
+  .caption { font-style: italic; font-size: 17px; line-height: 1.45; margin-top: 12px; }
+  .meta { font-size: 13px; color: var(--label); }
+
+  /* Image slots: drawn fallback stays until a real image loads */
+  .slot { position: relative; overflow: hidden; background: #3f5249; }
+  .slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .5s; }
+  .slot.loaded img { opacity: 1; }
+  .slot.loaded .fallback { visibility: hidden; }
+  .fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  @media (prefers-reduced-motion: reduce) { .slot img { transition: none; } }
+
+  /* Postcard */
+  .postcard { background: var(--paper); color: var(--ink); padding: 14px 14px 16px; }
+  .postcard .slot { height: 240px; }
+  .postcard .line { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; gap: 12px; }
+  .postcard .name { font-family: var(--display); font-size: 27px; font-weight: 600; }
+
+  /* Framed unnamed painting */
+  .frame { padding: 14px; background: var(--gilt); display: inline-block; }
+  .frame .mat { padding: 18px; background: #efe8d8; }
+  .wall-label { background: var(--cream); color: var(--ink); padding: 12px 14px; margin-top: 14px; display: grid; gap: 4px; }
+  .wall-label strong { font-weight: 500; font-size: 16px; }
+
+  /* Quote */
+  blockquote { margin: 0; background: var(--cream); color: var(--ink); padding: 34px 36px; transform: rotate(.8deg); }
+  blockquote p { margin: 0 0 18px; font-family: var(--display); font-style: italic; font-size: 30px; line-height: 1.22; }
+  blockquote footer { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+
+  /* Shelf with real covers */
+  .shelf { display: flex; align-items: flex-end; gap: 24px; padding: 0 22px; border-bottom: 12px solid #5b4630; box-shadow: 0 12px 18px rgba(0,0,0,.3); }
+  .book { width: 150px; height: 228px; }
+  .book.b2 { width: 140px; height: 212px; }
+  .book .fallback { flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 18px 14px; font-family: var(--display); font-size: 28px; font-weight: 600; line-height: 1; }
+  .book .fallback small { font-family: var(--body); font-size: 13px; font-weight: 400; }
+  .shelf-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 14px; font-size: 15px; line-height: 1.4; color: var(--cream-muted); }
+
+  /* Note */
+  .note { background: var(--note); color: #2c2a22; padding: 26px 24px; }
+  .note p { margin: 0 0 14px; font-style: italic; font-size: 21px; line-height: 1.38; }
+
+  /* Record */
+  .record { position: relative; width: 256px; height: 210px; }
+  .record .disc { position: absolute; left: 64px; top: 8px; width: 194px; height: 194px; border-radius: 50%; background: #0f0f0f; box-shadow: inset 0 0 0 30px #1b1b1b, inset 0 0 0 68px #111, inset 0 0 0 73px #c9a24a; }
+  .record .sleeve { position: absolute; left: 0; top: 0; width: 210px; height: 210px; background: #c9a24a; }
+  .record .sleeve img { filter: sepia(.35) contrast(1.05); }
+  .record .title { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px; background: linear-gradient(transparent, rgba(20,16,8,.8)); color: #f6ecd2; font-family: var(--display); font-size: 34px; font-weight: 600; z-index: 2; }
+
+  /* Ticket */
+  .ticket { display: flex; background: #e6dcc6; color: #2a2620; transform: rotate(-.8deg); }
+  .ticket .main { flex: 1; padding: 22px 24px; display: grid; gap: 10px; }
+  .ticket .main strong { font-family: var(--display); font-size: 27px; font-weight: 600; line-height: 1.05; }
+  .ticket .main span { font-style: italic; font-size: 17px; line-height: 1.4; }
+  .ticket .stub { width: 76px; border-left: 2px dashed #a8987a; display: flex; align-items: center; justify-content: center; }
+  .ticket .stub span { writing-mode: vertical-rl; font-size: 14px; color: #5e5440; }
+
+  /* Your photo */
+  .print { background: #f7f3ea; padding: 14px 14px 18px; color: #2a2620; }
+  .print .slot { height: 300px; }
+  .print .line { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; }
+
+  .standin { font-size: 12px; color: var(--cream-muted); margin-top: 48px; }
+
+  @media (max-width: 900px) {
+    .room { padding: 40px 22px 56px; }
+    header { flex-direction: column; align-items: flex-start; }
+    .s3, .s4, .s5, .s7 { grid-column: span 12; }
+    .wall { gap: 40px; }
+  }
+  @media print {
+    @page { size: landscape; margin: 0; }
+    html, body { background: var(--wall); }
+    .room { max-width: none; }
+    .slot img { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main class="room">
+  <header>
+    <div>
+      <h1>Four days in New York</h1>
+      <p>September 18 to 21. Eleven things kept, made from what you said on the train home.</p>
+    </div>
+    <div class="who"><span>Only you can see this</span><button class="ghost" type="button">Share room</button></div>
+  </header>
+
+  <section class="wall">
+
+    <figure class="s4 tilt-l">
+      <div class="postcard shadow">
+        <div class="slot" data-wiki="Metropolitan Museum of Art">
+          <div class="fallback"><svg viewBox="0 0 300 150" width="80%" fill="none" stroke="#efe9dd" stroke-width="2" aria-hidden="true"><path d="M20 132h260M34 124h232M40 60h220L150 22z"/><path d="M56 64v58M84 64v58M112 64v58M188 64v58M216 64v58M244 64v58"/></svg></div>
+          <img alt="The Metropolitan Museum of Art">
+        </div>
+        <div class="line"><span class="name">The Met</span><span class="meta">Visited Sep 19</span></div>
+      </div>
+      <figcaption class="caption">“Loved it just in general.”</figcaption>
+    </figure>
+
+    <figure class="s3" style="text-align:center">
+      <div class="frame shadow">
+        <div class="mat">
+          <svg viewBox="0 0 160 200" width="170" height="212" aria-label="Drawn placeholder: this room wasn't named">
+            <rect width="160" height="200" fill="#d8c79e"/><rect x="10" y="18" width="92" height="120" fill="#8a9a8b"/>
+            <rect x="58" y="70" width="92" height="112" fill="#c4854f" opacity=".85"/><circle cx="112" cy="46" r="20" fill="#e9d9ad"/>
+          </svg>
+        </div>
+      </div>
+      <div class="wall-label" style="text-align:left">
+        <strong>The room of paintings</strong>
+        <span class="meta">Unnamed, so it stays drawn.</span>
+        <span style="font-style:italic;font-size:15px;line-height:1.4">“This one room was incredible.”</span>
+      </div>
+    </figure>
+
+    <blockquote class="s5 shadow">
+      <p>“…for the growing good of the world is partly dependent on unhistoric acts.”</p>
+      <footer><span>George Eliot, Middlemarch</span><span class="meta">Copied out Sep 20</span></footer>
+    </blockquote>
+
+    <div class="s5">
+      <div class="shelf">
+        <div class="slot book shadow" data-ol-title="Middlemarch" data-ol-author="George Eliot" style="background:#1d5a5c;color:#f1e7cf">
+          <div class="fallback">Middle&shy;march<small>George Eliot</small></div>
+          <img alt="Middlemarch cover">
+        </div>
+        <div class="slot book b2 shadow" data-ol-title="Europe Central" data-ol-author="William T. Vollmann" style="background:#161616;color:#f0e6d2">
+          <div class="fallback">Europe Central<small>William T. Vollmann</small></div>
+          <img alt="Europe Central cover">
+        </div>
+      </div>
+      <div class="shelf-notes"><span>Almost done. Now one of your all-time favorites.</span><span>Reading. Picked up again in the park.</span></div>
+    </div>
+
+    <div class="s3 note tilt-ll shadow">
+      <p>The kids ran the whole length of the Mall and back. I want to remember how loud they were.</p>
+      <span class="meta" style="color:#5e5838">A moment, Sep 19</span>
+    </div>
+
+    <figure class="s4 tilt-r">
+      <div class="postcard shadow">
+        <div class="slot" data-wiki="Central Park">
+          <div class="fallback"><svg viewBox="0 0 300 150" width="80%" fill="none" stroke="#efe9dd" stroke-width="2" aria-hidden="true"><path d="M10 128c60-10 120-10 280 0"/><circle cx="64" cy="70" r="34"/><path d="M64 104v24"/><circle cx="126" cy="80" r="24"/><path d="M126 104v22"/></svg></div>
+          <img alt="Central Park">
+        </div>
+        <div class="line"><span class="name">Central Park</span><span class="meta">Sep 19</span></div>
+      </div>
+      <figcaption class="caption">“Loving all the people and the whole atmosphere.”</figcaption>
+    </figure>
+
+    <figure class="s3">
+      <div class="record">
+        <div class="disc"></div>
+        <div class="sleeve slot shadow" data-wiki="Antonio Vivaldi">
+          <div class="fallback"></div>
+          <img alt="Portrait of Antonio Vivaldi" style="object-position: top">
+          <span class="title">Vivaldi</span>
+        </div>
+      </div>
+      <figcaption style="font-size:15px;line-height:1.4;color:var(--cream-muted);margin-top:14px;max-width:240px">Listened on the walk back through the park.</figcaption>
+    </figure>
+
+    <div class="s4 ticket shadow">
+      <div class="main">
+        <strong>The tiny place on Grove Street</strong>
+        <span>Late dinner, no reservation. Best cacio e pepe of my life.</span>
+      </div>
+      <div class="stub"><span>Went, Sep 20</span></div>
+    </div>
+
+    <figure class="s5 print shadow tilt-r">
+      <div class="slot" data-wiki="Bethesda Terrace and Fountain">
+        <div class="fallback" style="color:var(--cream)">Your photo</div>
+        <img alt="Stand-in for your own photo: Bethesda Terrace">
+      </div>
+      <div class="line">
+        <span style="font-size:15px">Sep 19, 4:12 pm, near Central Park</span>
+        <button class="solid" type="button">Swap photo</button>
+      </div>
+    </figure>
+
+  </section>
+  <p class="standin">Mockup: place and portrait images from Wikipedia and covers from Open Library, loaded live. The pinned photo is a stand-in for one from your own library.</p>
+</main>
+
+<script>
+  function show(slot, url) {
+    if (!url) return;
+    const img = slot.querySelector('img');
+    img.onload = () => slot.classList.add('loaded');
+    img.src = url;
+  }
+
+  async function wikiImage(title) {
+    const u = new URL('https://en.wikipedia.org/w/api.php');
+    Object.entries({ action: 'query', titles: title, prop: 'pageimages', piprop: 'thumbnail', pithumbsize: '1000', redirects: '1', format: 'json', origin: '*' })
+      .forEach(([k, v]) => u.searchParams.set(k, v));
+    const data = await (await fetch(u)).json();
+    const page = Object.values(data?.query?.pages || {})[0];
+    return page?.thumbnail?.source || null;
+  }
+
+  async function openLibraryCover(title, author) {
+    const u = new URL('https://openlibrary.org/search.json');
+    u.searchParams.set('title', title);
+    if (author) u.searchParams.set('author', author);
+    u.searchParams.set('fields', 'cover_i');
+    u.searchParams.set('limit', '5');
+    const data = await (await fetch(u)).json();
+    const hit = (data.docs || []).find(d => d.cover_i);
+    return hit ? `https://covers.openlibrary.org/b/id/${hit.cover_i}-L.jpg` : null;
+  }
+
+  // Each slot keeps its drawn fallback if a lookup fails.
+  document.querySelectorAll('[data-wiki]').forEach(slot =>
+    wikiImage(slot.dataset.wiki).then(url => show(slot, url)).catch(() => {}));
+  document.querySelectorAll('[data-ol-title]').forEach(slot =>
+    openLibraryCover(slot.dataset.olTitle, slot.dataset.olAuthor).then(url => show(slot, url)).catch(() => {}));
+</script>
+</body>
+</html>

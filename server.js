@@ -72,6 +72,8 @@ FIELDS
 - Named writer without a specific book: entry_type=culture, subtype=author, candidate_title=the writer's name, candidate_creator=null, lookup_required=true. Do not add any of their books.
 - Named musician or composer without a specific work: entry_type=culture, subtype=musician. Named visual artist without a specific work: subtype=artist. Named specific artwork: subtype=artwork.
 - If the user bought a book, ownership_state may be owned, but state must not become reading unless they say they started it. "Almost done" means reading.
+- Past-tense "I read X" or "I was reading X" about a particular day means reading, not finished. Use finished only if the user says they finished, completed, or got to the end.
+- A reaction to an unnamed thing seen inside a place (a room of paintings, an exhibit, a dish) is about the thing, not the place: use entry_type=culture with the fitting subtype (e.g. artwork), candidate_title=null, lookup_required=false.
 - affect=excited for enthusiasm about a future item.
 - lookup_required=true only when a named real-world entity should be resolved.
 

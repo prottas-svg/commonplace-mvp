@@ -7,6 +7,7 @@ app.use(express.static('public'));
 
 const anthropicApiKey = process.env.ANTHROPIC_API_KEY || null;
 const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
+const ALLOWED_MODELS = ['claude-sonnet-5', 'claude-haiku-4-5-20251001'];
 
 const entrySchema = {
   type: 'object',
@@ -27,7 +28,7 @@ const entrySchema = {
           subtype: { type: 'string', enum: ['book','movie','tv','album','song','podcast','restaurant','museum','location','article','artwork','artist','musician','author','other','none'] },
           candidate_title: { type: ['string','null'] },
           candidate_creator: { type: ['string','null'] },
-          state: { type: 'string', enum: ['want_to_read','owned','reading','finished','want_to_watch','watching','watched','want_to_listen','listening','heard','want_to_go','visited','want_to_try','went','saved','experienced','none'] },
+          state: { type: 'string', enum: ['want','in_progress','finished','experienced','none'] },
           ownership_state: { type: 'string', enum: ['owned','borrowed','unknown','none'] },
           affect: { type: 'string', enum: ['loved','liked','mixed','disliked','excited','none'] },
           display_text: { type: 'string' },
@@ -51,13 +52,13 @@ function fallbackExtract(text) {
   };
 }
 
-async function extractEntries(text) {
+async function extractEntries(text, useModel = model) {
   if (!anthropicApiKey) return fallbackExtract(text);
 
   const system = `You extract entries for a private digital commonplace book from one spoken or typed reflection. Return between 1 and 10 entries.
 
 SPLITTING
-Split when the PRIMARY OBJECT OF ATTENTION meaningfully changes, not merely when the category changes. A place, a distinct reaction to something within that place, a book, a piece of music, and a personal or family moment can each be separate entries if each would be independently useful to retrieve later. Do not split every sentence, and do not create an entry for a passing mention with no reaction or state attached. Never return the whole transcript as one entry when it clearly covers several objects of attention.
+Split when the PRIMARY OBJECT OF ATTENTION meaningfully changes, not merely when the category changes. A place, a distinct reaction to something within that place, a book, a piece of music, and a personal or family moment can each be separate entries if each would be independently useful to retrieve later. Do not split every sentence, and do not create an entry for a passing mention with no reaction or state attached. Backstory, history, or context about the same object (when they first heard of it, who recommended it, a college memory of it) stays inside that object's entry; it is not a new object of attention. Never return the whole transcript as one entry when it clearly covers several objects of attention.
 
 GROUNDING (most important)
 - candidate_title and candidate_creator must come from words the user actually said, lightly normalized (capitalization, obvious transcription errors strongly supported by context). Never supply a name the user did not say.
@@ -71,15 +72,24 @@ FIELDS
 - display_text: the user's thought for this entry in their own voice, with light cleanup only (remove filler like "um", "let's see"; keep their wording and opinions). No summarizing in third person.
 - Named writer without a specific book: entry_type=culture, subtype=author, candidate_title=the writer's name, candidate_creator=null, lookup_required=true. Do not add any of their books.
 - Named musician or composer without a specific work: entry_type=culture, subtype=musician. Named visual artist without a specific work: subtype=artist. Named specific artwork: subtype=artwork.
-- If the user bought a book, ownership_state may be owned, but state must not become reading unless they say they started it. "Almost done" means reading.
-- Past-tense "I read X" or "I was reading X" about a particular day means reading, not finished. Use finished only if the user says they finished, completed, or got to the end.
+- state (the subtype already says what kind of thing it is):
+  want = wants to read/watch/hear/visit/try it, or it was recommended to them.
+  in_progress = partway through something consumed over multiple sittings (a book, a TV series, a podcast series). "I read X today", "I was reading X", and "almost done" are in_progress.
+  finished = the user says they finished, completed, or got to the end.
+  experienced = a single occasion: a place visited, a meal, a concert, listening to some music, seeing art, a moment with people.
+- If the user bought something, ownership_state=owned; that alone does not make state in_progress.
 - A reaction to an unnamed thing seen inside a place (a room of paintings, an exhibit, a dish) is about the thing, not the place: use entry_type=culture with the fitting subtype (e.g. artwork), candidate_title=null, lookup_required=false.
+- affect reflects only feelings the user expressed about THAT object. A general good mood about the day does not give each item an affect; use "none".
 - affect=excited for enthusiasm about a future item.
 - lookup_required=true only when a named real-world entity should be resolved.
 
 EXAMPLE (illustrative only; do not reuse its entities)
 Input: "Had dinner at Lucia's with my sister, the gnocchi was unreal, and on the drive home I finally started that Robert Caro book she gave me, plus the new Radiolab episode on sleep was kind of boring."
-Entries: Lucia's (place/restaurant, went, loved); dinner with sister (memory) only if the user dwells on it, otherwise fold into Lucia's; The Power Broker? NO: the user said "that Robert Caro book", so candidate_title=null, candidate_creator="Robert Caro", state=reading, lookup_required=false; Radiolab episode on sleep (culture/podcast, heard, disliked).`;
+Entries: Lucia's (place/restaurant, experienced, loved); dinner with sister (memory) only if the user dwells on it, otherwise fold into Lucia's; The Power Broker? NO: the user said "that Robert Caro book", so candidate_title=null, candidate_creator="Robert Caro", state=in_progress, lookup_required=false; Radiolab episode on sleep (culture/podcast, experienced, disliked).
+
+EXAMPLE 2 (illustrative only)
+Input: "We went to the Tate, which was fine, but one gallery of these huge dark paintings just stopped me cold."
+Entries: the Tate (place/museum, experienced, affect none because "fine" is neutral); the gallery of dark paintings (entry_type=culture, subtype=artwork, candidate_title=null, lookup_required=false, affect=loved), because the reaction is to the paintings, not the building.`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -89,7 +99,7 @@ Entries: Lucia's (place/restaurant, went, loved); dinner with sister (memory) on
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      model,
+      model: useModel,
       max_tokens: 2500,
       system,
       messages: [{ role: 'user', content: text }],
@@ -244,12 +254,17 @@ app.post('/api/capture', async (req, res) => {
   const text = String(req.body?.text || '').trim();
   if (!text) return res.status(400).json({ error: 'Text is required.' });
   try {
-    const extracted = await extractEntries(text);
+    const requested = req.body?.model;
+    if (requested && !ALLOWED_MODELS.includes(requested)) return res.status(400).json({ error: `Model not allowed: ${requested}` });
+    const useModel = requested || model;
+    const t0 = Date.now();
+    const extracted = await extractEntries(text, useModel);
+    const extract_ms = Date.now() - t0;
     const enriched = await Promise.all(extracted.entries.map(async (entry) => {
       const resolution = await resolve(entry);
       return { ...entry, checks: grounding(entry, text), resolution, related: relatedFor(entry, resolution) };
     }));
-    res.json({ input: text, extraction_mode: extracted.extraction_mode, entries: enriched });
+    res.json({ input: text, model: useModel, extract_ms, extraction_mode: extracted.extraction_mode, entries: enriched });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Capture failed.' });

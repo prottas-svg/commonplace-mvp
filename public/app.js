@@ -1,3 +1,11 @@
+// Stored states are generic; show them in words that fit the kind of thing.
+const STATE_LABELS = {
+  in_progress: { book:'reading', tv:'watching', podcast:'listening', _:'in progress' },
+  finished: { book:'finished', movie:'watched', tv:'finished', _:'finished' },
+  want: { book:'want to read', movie:'want to watch', tv:'want to watch', album:'want to hear', song:'want to hear', musician:'want to hear', restaurant:'want to try', museum:'want to visit', location:'want to visit', _:'want' },
+  experienced: { album:'listened', song:'listened', musician:'listened', podcast:'listened', restaurant:'went', museum:'visited', location:'visited', artwork:'saw', movie:'watched', _:'experienced' },
+};
+function stateLabel(e){ const m = STATE_LABELS[e.state]; return m ? (m[e.subtype] || m._) : e.state; }
 const input = document.querySelector('#input');
 const processBtn = document.querySelector('#process');
 const micBtn = document.querySelector('#mic');
@@ -57,7 +65,7 @@ function renderEntries(entries){
     const title = best?.title || e.candidate_title || (e.entry_type === 'memory' ? 'Memory' : 'Unresolved entry');
     const creator = best?.creator || e.candidate_creator || '';
     const image = best?.image;
-    const pills = [e.subtype,e.state,e.ownership_state,e.affect].filter(Boolean);
+    const pills = [e.subtype,stateLabel(e),e.ownership_state,e.affect].filter(Boolean);
     let resolution = '';
     if (e.resolution?.status === 'adapter_not_configured') resolution = `<div class="note">${esc(e.resolution.provider)} lookup is not configured yet; this entry is still saved.</div>`;
     if (e.resolution?.status === 'unresolved') resolution = `<div class="note">No confident external match. Saved as-is rather than guessing.</div>`;
